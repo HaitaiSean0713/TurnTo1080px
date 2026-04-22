@@ -1,0 +1,6 @@
+{
+  "name": "SquareIt",
+  "description": "Convert any image to a 1080x1080 square without distorting or cropping the original content.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
