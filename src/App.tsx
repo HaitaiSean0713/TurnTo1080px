@@ -1,13 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { UploadCloud, Image as ImageIcon, Download, Settings, RefreshCw, Layers } from 'lucide-react';
-
-type BgType = 'color' | 'blur' | 'transparent';
+import { UploadCloud, Image as ImageIcon, Download, RefreshCw, Layers } from 'lucide-react';
 
 export default function App() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [bgType, setBgType] = useState<BgType>('color');
-  const [bgColor, setBgColor] = useState<string>('#ffffff');
   const [isProcessing, setIsProcessing] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -72,26 +68,8 @@ export default function App() {
       ctx.clearRect(0, 0, targetSize, targetSize);
 
       // Handle Background
-      if (bgType === 'color') {
-        ctx.fillStyle = bgColor;
-        ctx.fillRect(0, 0, targetSize, targetSize);
-      } else if (bgType === 'blur') {
-        // Draw blurred background
-        // Calculate crop to fill targetSize
-        const scaleToFill = Math.max(targetSize / img.width, targetSize / img.height);
-        const fbWidth = img.width * scaleToFill;
-        const fbHeight = img.height * scaleToFill;
-        const fbX = (targetSize - fbWidth) / 2;
-        const fbY = (targetSize - fbHeight) / 2;
-        
-        ctx.filter = 'blur(40px)';
-        ctx.drawImage(img, fbX, fbY, fbWidth, fbHeight);
-        ctx.filter = 'none';
-        
-        // Add a slight darkening overlay to make the main image pop
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-        ctx.fillRect(0, 0, targetSize, targetSize);
-      } // transparent needs no initial fill
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, targetSize, targetSize);
 
       // Calculate the size to fit within exactly 1080x1080
       const scaleToFit = Math.min(targetSize / img.width, targetSize / img.height);
@@ -104,27 +82,26 @@ export default function App() {
       ctx.drawImage(img, x, y, w, h);
 
       // Create preview
-      const generatedUrl = canvas.toDataURL(bgType === 'transparent' ? 'image/png' : 'image/jpeg', 0.95);
+      const generatedUrl = canvas.toDataURL('image/jpeg', 0.95);
       setPreviewUrl(generatedUrl);
       setIsProcessing(false);
     };
     img.src = imageUrl;
 
-  }, [imageUrl, bgType, bgColor]);
+  }, [imageUrl]);
 
   useEffect(() => {
     if (imageUrl) {
       processImage();
     }
-  }, [imageUrl, bgType, bgColor, processImage]);
+  }, [imageUrl, processImage]);
 
   const handleDownload = () => {
     if (!previewUrl || !imageFile) return;
     const a = document.createElement('a');
     a.href = previewUrl;
     const originalName = imageFile.name.split('.').slice(0, -1).join('.');
-    const extension = bgType === 'transparent' ? 'png' : 'jpg';
-    a.download = `${originalName}-1080x1080.${extension}`;
+    a.download = `${originalName}-1080x1080.jpg`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -189,7 +166,7 @@ export default function App() {
               </div>
 
               {/* Preview Area */}
-              <div className="relative w-full max-w-[500px] aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center checkerboard-bg">
+              <div className="relative w-full max-w-[500px] aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center">
                 {isProcessing ? (
                   <div className="flex flex-col items-center text-gray-500">
                     <RefreshCw className="w-8 h-8 animate-spin mb-3" />
@@ -207,78 +184,27 @@ export default function App() {
         <div className="md:col-span-4 flex flex-col gap-6">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 sticky top-6">
             <h2 className="text-lg font-medium mb-6 flex items-center gap-2">
-              <Settings className="w-5 h-5 text-gray-400" />
-              Padding Settings
+              <Download className="w-5 h-5 text-gray-400" />
+              Export Options
             </h2>
 
             <div className="space-y-6">
-              {/* Background Type */}
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-gray-700">Background Style</label>
-                <div className="grid grid-cols-1 gap-2">
-                  <button
-                    onClick={() => setBgType('color')}
-                    className={`px-4 py-3 border rounded-lg text-left transition-colors flex items-center gap-3 ${bgType === 'color' ? 'border-indigo-600 bg-indigo-50 ring-1 ring-indigo-600' : 'border-gray-200 hover:border-gray-300'}`}
-                  >
-                    <div className="w-5 h-5 rounded border border-gray-300" style={{ backgroundColor: bgColor }}></div>
-                    <span className="font-medium text-sm">Solid Color</span>
-                  </button>
-                  <button
-                    onClick={() => setBgType('blur')}
-                    className={`px-4 py-3 border rounded-lg text-left transition-colors flex items-center gap-3 ${bgType === 'blur' ? 'border-indigo-600 bg-indigo-50 ring-1 ring-indigo-600' : 'border-gray-200 hover:border-gray-300'}`}
-                  >
-                    <div className="w-5 h-5 rounded bg-gradient-to-br from-gray-300 to-gray-400 blur-[2px] overflow-hidden"></div>
-                    <span className="font-medium text-sm">Blurred Image</span>
-                  </button>
-                  <button
-                    onClick={() => setBgType('transparent')}
-                    className={`px-4 py-3 border rounded-lg text-left transition-colors flex items-center gap-3 ${bgType === 'transparent' ? 'border-indigo-600 bg-indigo-50 ring-1 ring-indigo-600' : 'border-gray-200 hover:border-gray-300'}`}
-                  >
-                    <div className="w-5 h-5 rounded border border-gray-300 checkerboard-bg-small"></div>
-                    <span className="font-medium text-sm">Transparent <span className="text-xs text-gray-500 ml-1">(PNG)</span></span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Color Picker (Only if color is selected) */}
-              {bgType === 'color' && (
-                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <label className="text-sm font-medium text-gray-700">Select Color</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="color"
-                      value={bgColor}
-                      onChange={(e) => setBgColor(e.target.value)}
-                      className="w-10 h-10 rounded border-0 p-0 cursor-pointer"
-                    />
-                    <input
-                      type="text"
-                      value={bgColor.toUpperCase()}
-                      onChange={(e) => setBgColor(e.target.value)}
-                      className="flex-1 w-full border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-700"
-                    />
-                  </div>
-                  <div className="flex gap-2 mt-2">
-                     <button onClick={() => setBgColor('#ffffff')} className="flex-1 h-8 rounded border border-gray-200 bg-white" title="White"></button>
-                     <button onClick={() => setBgColor('#000000')} className="flex-1 h-8 rounded border border-gray-200 bg-black" title="Black"></button>
-                     <button onClick={() => setBgColor('#f3f4f6')} className="flex-1 h-8 rounded border border-gray-200 bg-gray-100" title="Light Gray"></button>
-                     <button onClick={() => setBgColor('#1f2937')} className="flex-1 h-8 rounded border border-gray-200 bg-gray-800" title="Dark Gray"></button>
-                  </div>
-                </div>
-              )}
+              <p className="text-sm text-gray-600 leading-relaxed">
+                Your image is automatically centered and padded with a white background to perfectly fit a 1080x1080 square.
+              </p>
 
               {/* Download Button */}
-              <div className="pt-6 mt-6 border-t border-gray-200">
+              <div className="pt-2">
                 <button
                   disabled={!imageUrl || isProcessing}
                   onClick={handleDownload}
                   className="w-full py-3 px-4 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   <Download className="w-5 h-5" />
-                  Download Complete Image
+                  Download Image
                 </button>
                 <p className="text-xs text-center text-gray-500 mt-3">
-                  Image will be saved as 1080x1080 {bgType === 'transparent' ? 'PNG' : 'JPEG'}.
+                  Image will be saved as a 1080x1080 JPEG.
                 </p>
               </div>
             </div>
@@ -288,27 +214,6 @@ export default function App() {
 
       {/* Hidden Canvas for Processing */}
       <canvas ref={canvasRef} className="hidden" />
-      
-      <style>{`
-        .checkerboard-bg {
-          background-image: 
-            linear-gradient(45deg, #e5e7eb 25%, transparent 25%),
-            linear-gradient(-45deg, #e5e7eb 25%, transparent 25%),
-            linear-gradient(45deg, transparent 75%, #e5e7eb 75%),
-            linear-gradient(-45deg, transparent 75%, #e5e7eb 75%);
-          background-size: 20px 20px;
-          background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-        }
-        .checkerboard-bg-small {
-          background-image: 
-            linear-gradient(45deg, #e5e7eb 25%, transparent 25%),
-            linear-gradient(-45deg, #e5e7eb 25%, transparent 25%),
-            linear-gradient(45deg, transparent 75%, #e5e7eb 75%),
-            linear-gradient(-45deg, transparent 75%, #e5e7eb 75%);
-          background-size: 8px 8px;
-          background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
-        }
-      `}</style>
     </div>
   );
 }
